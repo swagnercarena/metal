@@ -192,7 +192,7 @@ class Classifier(nn.Module):
         # Convert data to DataLoaders
         train_loader = self._create_data_loader(train_data)
         valid_loader = self._create_data_loader(valid_data)
-        epoch_size = len(train_loader.dataset)
+        batches_per_epoch = len(train_loader)
 
         # Move model to GPU
         if self.config["verbose"] and self.config["device"] != "cpu":
@@ -201,7 +201,7 @@ class Classifier(nn.Module):
 
         # Set training components
         self._set_writer(train_config)
-        self._set_logger(train_config, epoch_size)
+        self._set_logger(train_config, batches_per_epoch)
         self._set_checkpointer(train_config)
         self._set_optimizer(train_config)
         self._set_scheduler(train_config)
@@ -430,11 +430,14 @@ class Classifier(nn.Module):
         else:
             raise Exception(f"Unrecognized writer: {train_config['writer']}")
 
-    def _set_logger(self, train_config, epoch_size):
+    def _set_logger(self, train_config, batches_per_epoch):
+        logger_config = self.config["logger_config"]
+        if logger_config["score_every"] < 0:
+            logger_config["score_every"] = logger_config["log_every"]
         self.logger = Logger(
-            train_config["logger_config"],
+            logger_config,
+            batches_per_epoch,
             self.writer,
-            epoch_size,
             verbose=self.config["verbose"],
         )
 
@@ -523,29 +526,34 @@ class Classifier(nn.Module):
                 else:
                     self.lr_scheduler.step()
 
-    def _execute_logging(self, train_loader, valid_loader, loss, batch_size):
+    def _execute_logging(
+        self, train_loader, valid_loader, loss, batch_size, force_log=False
+    ):
         self.eval()
         self.running_loss += loss.item() * batch_size
         self.running_examples += batch_size
 
         # Initialize metrics dict
         metrics_dict = {}
-        # Always add average loss
-        metrics_dict["train/loss"] = self.running_loss / self.running_examples
+        self.logger.increment(batch_size)
 
-        if self.logger.check(batch_size):
-            logger_metrics = self.logger.calculate_metrics(
-                self, train_loader, valid_loader, metrics_dict
-            )
-            metrics_dict.update(logger_metrics)
-            self.logger.log(metrics_dict)
-
+        do_log = False
+        if self.logger.loss_time():
+            # Report and report loss
+            metrics_dict["train/loss"] = self.running_loss / self.running_examples
             # Reset running loss and examples counts
             self.running_loss = 0.0
             self.running_examples = 0
-
-        # Checkpoint if applicable
-        self._checkpoint(metrics_dict)
+            do_log = True
+        if self.logger.metrics_time() or force_log:
+            # Calculate and report scores
+            metrics_dict.update(self.calculate_metrics(train_loader, valid_loader))
+            do_log = True
+        if do_log or force_log:
+            # Log to screen/file/TensorBoard
+            self.logger.log(metrics_dict)
+            # Save best model if applicable
+            self._checkpoint(metrics_dict)
 
         self.train()
         return metrics_dict

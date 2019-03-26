@@ -32,12 +32,13 @@ lm_default_config = {
         "logger": True,
         "logger_config": {
             "log_unit": "epochs",  # ['seconds', 'examples', 'batches', 'epochs']
-            "log_train_every": 1,  # How often train loss is reported
-            "log_train_metrics": ["train/loss"],
-            "log_train_metrics_func": None,
-            "log_valid_every": 0,
-            "log_valid_metrics": [],
-            "log_valid_metrics_func": None,
+            # Report loss every this many log_units
+            "log_every": 1.0,
+            # Calculate and report metrics every this many log_units:
+            #   -1: default to log_every
+            #   0: do not calculate or log metrics
+            #   otherwise: must be a multiple of log_every
+            "score_every": 0,
         },
         # Writer
         "writer": None,

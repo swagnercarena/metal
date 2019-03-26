@@ -79,16 +79,18 @@ em_default_config = {
         "logger": True,
         "logger_config": {
             "log_unit": "epochs",  # ['seconds', 'examples', 'batches', 'epochs']
-            "log_train_every": 1,  # How often train metrics are calculated (optionally logged to TB)
-            "log_train_metrics": [
-                "loss"
-            ],  # Metrics to calculate and report every `log_train_every` units. This can include built-in and user-defined metrics.
-            "log_train_metrics_func": None,  # A function or list of functions that map a model + train_loader to a dictionary of custom metrics
-            "log_valid_every": 1,  # How frequently to evaluate on valid set (must be multiple of log_freq)
-            "log_valid_metrics": [
-                "accuracy"
-            ],  # Metrics to calculate and report every `log_valid_every` units; this can include built-in and user-defined metrics
-            "log_valid_metrics_func": None,  # A function or list of functions that maps a model + valid_loader to a dictionary of custom metrics
+            # Report loss every this many log_units
+            "log_every": 1.0,
+            # Calculate and report metrics every this many log_units:
+            #   -1: default to log_every
+            #   0: do not calculate or log metrics
+            #   otherwise: must be a multiple of log_every
+            "score_every": -1.0,
+            # Metrics of the form split/metric to calculate every score_every log_units
+            "standard_metrics": ["valid/accuracy"],  #
+            # A function or list of functions that map model + loader to a dict of
+            # custom metrics of the form split/metric
+            "custom_metric_funcs": None,
         },
         # LogWriter/Tensorboard (see metal/logging/writer.py for descriptions)
         "writer": None,  # [None, "json", "tensorboard"]
