@@ -27,7 +27,7 @@ import zipfile
 TASKS = [
     "CoLA",
     "SST",
-    # "MRPC",
+    #"MRPC",
     "QQP",
     "STS",
     "MNLI",
@@ -79,7 +79,7 @@ def format_mrpc(data_dir, path_to_data):
         "Train data not found at %s" % mrpc_train_file
     )
     assert os.path.isfile(mrpc_test_file), "Test data not found at %s" % mrpc_test_file
-    urllib.request.urlretrieve(TASK2PATH["MRPC"], os.path.join(mrpc_dir, "dev_ids.tsv"))
+    #urllib.request.urlretrieve(TASK2PATH["MRPC"], os.path.join(mrpc_dir, "dev_ids.tsv"))
 
     dev_ids = []
     with open(os.path.join(mrpc_dir, "dev_ids.tsv"), encoding="utf8") as ids_fh:
